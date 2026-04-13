@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>您好！第一課 生詞配對遊戲</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --surface: #fffdf8;
+    --accent: #c0392b;
+    --accent2: #2c7a4b;
+    --ink: #1a1208;
+    --muted: #7a6e5e;
+    --border: #d4c9b0;
+    --matched-bg: #e8f5ee;
+    --matched-border: #2c7a4b;
+    --wrong-bg: #fdecea;
+    --wrong-border: #c0392b;
+    --selected-bg: #fef3e2;
+    --selected-border: #d4820a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Lato', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 85%, rgba(192,57,43,0.06) 0%, transparent 40%),
+      radial-gradient(circle at 85% 15%, rgba(44,122,75,0.06) 0%, transparent 40%);
+  }
+
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: var(--accent);
+    margin: 1rem auto 0;
+    border-radius: 2px;
+  }
+  .lesson-tag {
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: clamp(26px, 5vw, 38px);
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* ── Mode tabs ── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 13px;
+    padding: 7px 18px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tab-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* ── Scoreboard ── */
+  .scoreboard {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 1.75rem;
+  }
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 22px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .score-card .label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
+  .score-card .val {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .score-card.matched .val { color: var(--accent2); }
+  .score-card.wrong-s .val { color: var(--accent); }
+
+  /* ── Grid ── */
+  .col-headers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .col-header {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+  .game-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .card-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.35;
+    user-select: none;
+    position: relative;
+  }
+  .card:hover:not(.matched):not(.wrong) {
+    border-color: var(--selected-border);
+    box-shadow: 0 2px 10px rgba(212,130,10,0.12);
+    transform: translateY(-1px);
+  }
+  .card .zh {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .card .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .card.selected {
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
+    box-shadow: 0 0 0 3px rgba(212,130,10,0.15);
+  }
+  .card.selected .zh, .card.selected .sub { color: #8a5000; }
+  .card.matched {
+    background: var(--matched-bg);
+    border-color: var(--matched-border);
+    cursor: default;
+    opacity: 0.85;
+  }
+  .card.matched .zh, .card.matched .sub { color: var(--accent2); }
+  .card.matched::after {
+    content: '✓';
+    position: absolute;
+    top: 5px; right: 8px;
+    font-size: 11px;
+    color: var(--accent2);
+    font-weight: 700;
+  }
+  .card.wrong {
+    background: var(--wrong-bg);
+    border-color: var(--wrong-border);
+    animation: shake 0.35s ease;
+  }
+  .card.wrong .zh, .card.wrong .sub { color: var(--accent); }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    60% { transform: translateX(7px); }
+  }
+
+  /* ── Win banner ── */
+  .win-banner {
+    display: none;
+    margin-top: 1.5rem;
+    background: var(--surface);
+    border: 1.5px solid var(--matched-border);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    animation: fadeUp 0.4s ease;
+  }
+  .win-banner.show { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .win-banner .big { font-family: 'Noto Serif TC', serif; font-size: 22px; font-weight: 700; color: var(--accent2); }
+  .win-banner .sub2 { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Controls ── */
+  .controls {
+    text-align: center;
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 14px;
+    padding: 9px 24px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+
+  /* ── Instruction ── */
+  .instruction {
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    padding: 8px 16px;
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  @media (max-width: 480px) {
+    .card .zh { font-size: 15px; }
+    .score-card { min-width: 64px; padding: 8px 12px; }
+    .score-card .val { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="lesson-tag">Book 1 · Lesson 01</div>
+    <h1>您好！<span>生詞配對</span></h1>
+    <p class="subtitle">點選左側詞語，再點選右側對應答案</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setMode('zh-py')">漢字 → 拼音</button>
+    <button class="tab-btn" onclick="setMode('py-en')">拼音 → 英文</button>
+    <button class="tab-btn" onclick="setMode('zh-en')">漢字 → 英文</button>
+  </div>
+
+  <div class="scoreboard">
+    <div class="score-card matched">
+      <div class="label">配對</div>
+      <div class="val" id="sc-matched">0</div>
+    </div>
+    <div class="score-card wrong-s">
+      <div class="label">錯誤</div>
+      <div class="val" id="sc-wrong">0</div>
+    </div>
+    <div class="score-card">
+      <div class="label">嘗試</div>
+      <div class="val" id="sc-total">0</div>
+    </div>
+  </div>
+
+  <div class="instruction" id="instruction">選一張左側卡片，再選一張右側卡片來配對</div>
+
+  <div class="col-headers">
+    <div class="col-header" id="lbl-left">漢字</div>
+    <div class="col-header" id="lbl-right">拼音</div>
+  </div>
+
+  <div class="game-grid">
+    <div class="card-col" id="left-col"></div>
+    <div class="card-col" id="right-col"></div>
+  </div>
+
+  <div class="win-banner" id="win-banner">
+    <div class="big">🎉 全部配對完成！</div>
+    <div class="sub2" id="win-detail"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" onclick="init()">重新開始 ↺</button>
+    <button class="btn" onclick="nextBatch()">換一組 →</button>
+  </div>
+
+</div>
+
+<script>
+const ALL_VOCAB = [
+  { zh: '您',    py: 'nín',         en: 'you (polite)' },
+  { zh: '好',    py: 'hǎo',         en: 'good, fine' },
+  { zh: '我',    py: 'wǒ',          en: 'I, me' },
+  { zh: '姓',    py: 'xìng',        en: 'to be surnamed' },
+  { zh: '叫',    py: 'jiào',        en: 'to be called' },
+  { zh: '什麼',  py: 'shénme',      en: 'what' },
+  { zh: '名字',  py: 'míngzi',      en: 'name' },
+  { zh: '是',    py: 'shì',         en: 'to be' },
+  { zh: '人',    py: 'rén',         en: 'people, person' },
+  { zh: '請問',  py: 'qǐng wèn',    en: 'may I ask...' },
+  { zh: '貴姓',  py: 'guì xìng',    en: 'your surname (polite)' },
+  { zh: '哪國人', py: 'nǎ guó rén', en: "one's nationality" },
+  { zh: '美國人', py: 'Měiguó rén', en: 'American' },
+  { zh: '您呢',  py: 'nín ne',      en: 'and you?' },
+  { zh: '臺灣人', py: 'Táiwān rén', en: 'Taiwanese' },
+];
+
+let mode = 'zh-py';
+let pairs = [];
+let leftSel = null;
+let rightSel = null;
+let matched = 0, wrongs = 0, total = 0;
+let batchOffset = 0;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['zh-py','py-en','zh-en'][i] === m);
+  });
+  const labels = {
+    'zh-py': ['漢字', '拼音'],
+    'py-en': ['拼音', '英文'],
+    'zh-en': ['漢字', '英文'],
+  };
+  document.getElementById('lbl-left').textContent = labels[m][0];
+  document.getElementById('lbl-right').textContent = labels[m][1];
+  init();
+}
+
+function init() {
+  matched = 0; wrongs = 0; total = 0;
+  leftSel = null; rightSel = null;
+  updateScore();
+  document.getElementById('win-banner').classList.remove('show');
+  document.getElementById('instruction').textContent = '選一張左側卡片，再選一張右側卡片來配對';
+
+  const shuffled = shuffle(ALL_VOCAB);
+  pairs = shuffled.slice(0, 8);
+  renderGame();
+}
+
+function nextBatch() {
+  batchOffset = (batchOffset + 8) % ALL_VOCAB.length;
+  matched = 0; wrongs = 0; total = 0;
+  leftSel = null; rightSel = null;
+  updateScore();
+  document.getElementById('win-banner').classList.remove('show');
+  document.getElementById('instruction').textContent = '選一張左側卡片，再選一張右側卡片來配對';
+
+  const src = shuffle(ALL_VOCAB);
+  pairs = src.slice(0, 8);
+  renderGame();
+}
+
+function renderGame() {
+  const leftData = pairs.map((v, i) => ({
+    id: i,
+    text: mode === 'py-en' ? v.py : v.zh
+  }));
+  const rightData = pairs.map((v, i) => ({
+    id: i,
+    text: mode === 'zh-py' ? v.py : v.en
+  }));
+
+  renderCol('left-col', shuffle(leftData), 'left');
+  renderCol('right-col', shuffle(rightData), 'right');
+}
+
+function renderCol(colId, items, side) {
+  const col = document.getElementById(colId);
+  col.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.dataset.id = item.id;
+
+    if (side === 'left' && mode !== 'py-en') {
+      div.innerHTML = `<span class="zh">${item.text}</span>`;
+    } else {
+      div.innerHTML = `<span class="zh" style="font-size:15px;font-family:Lato,sans-serif">${item.text}</span>`;
+    }
+
+    div.addEventListener('click', () => handleClick(div, item.id, side));
+    col.appendChild(div);
+  });
+}
+
+function handleClick(el, id, side) {
+  if (el.classList.contains('matched') || el.classList.contains('wrong')) return;
+
+  if (side === 'left') {
+    if (leftSel && leftSel.el === el) { el.classList.remove('selected'); leftSel = null; return; }
+    if (leftSel) leftSel.el.classList.remove('selected');
+    leftSel = { el, id };
+    el.classList.add('selected');
+  } else {
+    if (rightSel && rightSel.el === el) { el.classList.remove('selected'); rightSel = null; return; }
+    if (rightSel) rightSel.el.classList.remove('selected');
+    rightSel = { el, id };
+    el.classList.add('selected');
+  }
+
+  if (leftSel && rightSel) {
+    total++;
+    if (leftSel.id === rightSel.id) {
+      leftSel.el.classList.remove('selected');
+      rightSel.el.classList.remove('selected');
+      leftSel.el.classList.add('matched');
+      rightSel.el.classList.add('matched');
+      matched++;
+      leftSel = null; rightSel = null;
+      updateScore();
+      document.getElementById('instruction').textContent = matched < pairs.length ? '繼續！選下一組配對' : '';
+      if (matched === pairs.length) showWin();
+    } else {
+      wrongs++;
+      updateScore();
+      const le = leftSel.el, re = rightSel.el;
+      le.classList.add('wrong'); re.classList.add('wrong');
+      document.getElementById('instruction').textContent = '不對，再試試看 😊';
+      setTimeout(() => {
+        le.classList.remove('wrong','selected');
+        re.classList.remove('wrong','selected');
+        leftSel = null; rightSel = null;
+        document.getElementById('instruction').textContent = '選一張左側卡片，再選一張右側卡片來配對';
+      }, 800);
+    }
+  }
+}
+
+function updateScore() {
+  document.getElementById('sc-matched').textContent = matched;
+  document.getElementById('sc-wrong').textContent = wrongs;
+  document.getElementById('sc-total').textContent = total;
+}
+
+function showWin() {
+  const acc = total > 0 ? Math.round(matched / total * 100) : 100;
+  document.getElementById('win-detail').textContent = `正確率 ${acc}%，共嘗試 ${total} 次`;
+  document.getElementById('win-banner').classList.add('show');
+}
+
+init();
+</script>
+</body>
+</html>
